@@ -7,7 +7,21 @@
 .buildlog/
 .history
 
+# Node/Backend
+node_modules/
+backend/node_modules/
+**/node_modules/
+.env
+.env.*
+!.env.example
+dist/
+backend/dist/
+coverage/
+**/coverage/
+.nyc_output/
 
+# Docker
+*.local
 
 # Flutter repo-specific
 /bin/cache/
