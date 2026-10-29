@@ -5,6 +5,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { swaggerDocument, swaggerUi } from "./swagger.js";
 import authRoutes from "./routes/auth.js";
+import aiRoutes from "./routes/ai.js";
 import { errorHandler } from "./middleware/error.js";
 
 const app = express();
@@ -43,6 +44,15 @@ const authLimiter = rateLimit({
   message: { error: "Too many requests, please try again later." },
 });
 
+// Rate limiting for AI endpoints
+const aiLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20, // limit each IP to 20 AI requests per hour
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many AI requests, please try again later." },
+});
+
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.get("/api/health", (_req, res) => {
@@ -53,6 +63,7 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/ai", aiLimiter, aiRoutes);
 app.use(errorHandler);
 
 export default app;

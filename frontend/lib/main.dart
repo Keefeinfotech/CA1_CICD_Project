@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
+import 'screens/ai_chat_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -28,7 +29,7 @@ class AuthHome extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Auxilia - Auth')),
+      appBar: AppBar(title: const Text('Auxilia')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -47,6 +48,14 @@ class AuthHome extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => const SignupScreen()),
               ),
               child: const Text('Sign Up'),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AiChatScreen()),
+              ),
+              child: const Text('AI Chat (Demo)'),
             ),
           ],
         ),
