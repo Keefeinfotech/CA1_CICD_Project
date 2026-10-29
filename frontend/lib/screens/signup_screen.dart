@@ -1,19 +1,25 @@
 import 'package:flutter/material.dart';
+
+import '../services/api_client.dart';
 import '../services/auth_service.dart';
+import '../services/session_store.dart';
+import 'home_screen.dart';
 
 class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key});
+  const SignupScreen({super.key, this.auth});
+
+  final AuthService? auth;
 
   @override
   State<SignupScreen> createState() => _SignupScreenState();
 }
 
 class _SignupScreenState extends State<SignupScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _name = TextEditingController();
-  final _email = TextEditingController();
-  final _password = TextEditingController();
-  final _auth = AuthService();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _name = TextEditingController();
+  final TextEditingController _email = TextEditingController();
+  final TextEditingController _password = TextEditingController();
+  late final AuthService _auth = widget.auth ?? AuthService();
   bool _loading = false;
 
   @override
@@ -26,21 +32,42 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Future<void> _signup() async {
     if (!_formKey.currentState!.validate()) return;
+
     setState(() => _loading = true);
     try {
-      final res = await _auth.signup(name: _name.text.trim(), email: _email.text.trim(), password: _password.text);
+      final session = await _auth.signup(
+        name: _name.text.trim(),
+        email: _email.text.trim(),
+        password: _password.text,
+      );
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute<void>(
+          builder: (_) => HomeScreen(
+            ownerId: session.email,
+            displayName: session.displayName,
+            session: session,
+          ),
+        ),
+      );
+    } on ApiException catch (err) {
+      if (mounted) _showError(err.message);
+    } on SessionException catch (err) {
+      if (mounted) _showError(err.message);
+    } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(res['user'] != null ? 'Signup successful' : (res['error'] ?? 'Signup failed'))),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        _showError('Something went wrong while creating your account.');
       }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -53,35 +80,78 @@ class _SignupScreenState extends State<SignupScreen> {
             padding: const EdgeInsets.all(24),
             child: Card(
               elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.person_add_outlined, size: 48, color: Colors.indigo),
+                    children: <Widget>[
+                      const Icon(
+                        Icons.person_add_outlined,
+                        size: 48,
+                        color: Colors.indigo,
+                      ),
                       const SizedBox(height: 8),
-                      const Text('Create Account', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Create account',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 24),
                       TextFormField(
                         controller: _name,
-                        decoration: const InputDecoration(labelText: 'Name (optional)', prefixIcon: Icon(Icons.person_outlined)),
+                        decoration: const InputDecoration(
+                          labelText: 'Name (optional)',
+                          prefixIcon: Icon(Icons.person_outline),
+                        ),
+                        validator: (value) {
+                          if ((value ?? '').trim().length > 80) {
+                            return 'Keep your name under 80 characters';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _email,
-                        decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email_outlined)),
+                        decoration: const InputDecoration(
+                          labelText: 'Email',
+                          prefixIcon: Icon(Icons.email_outlined),
+                        ),
                         keyboardType: TextInputType.emailAddress,
-                        validator: (v) => (v == null || !v.contains('@')) ? 'Enter valid email' : null,
+                        autofillHints: const <String>[AutofillHints.email],
+                        validator: (value) {
+                          final email = (value ?? '').trim();
+                          if (email.isEmpty) return 'Enter your email';
+                          if (!email.contains('@')) {
+                            return 'Enter a valid email address';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _password,
-                        decoration: const InputDecoration(labelText: 'Password (min 6)', prefixIcon: Icon(Icons.lock_outlined)),
+                        decoration: const InputDecoration(
+                          labelText: 'Password (min 8)',
+                          prefixIcon: Icon(Icons.lock_outlined),
+                        ),
                         obscureText: true,
-                        validator: (v) => (v == null || v.length < 6) ? 'Min 6 characters' : null,
+                        autofillHints: const <String>[
+                          AutofillHints.newPassword,
+                        ],
+                        validator: (value) {
+                          if (value == null || value.length < 8) {
+                            return 'Use at least 8 characters';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 24),
                       SizedBox(
