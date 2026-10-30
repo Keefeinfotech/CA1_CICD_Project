@@ -7,6 +7,7 @@ import '../services/session_store.dart';
 import '../services/task_repository.dart';
 import '../services/task_store.dart';
 import '../services/task_validation.dart';
+import '../theme/app_theme.dart';
 import '../widgets/task_card.dart';
 import '../widgets/task_editor.dart';
 import 'ai_chat_screen.dart';
@@ -257,163 +258,25 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final progress = _store.levelProgress;
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Auxilia'),
-        actions: <Widget>[
-          IconButton(
-            tooltip: 'AI assistant',
-            onPressed: _openAssistant,
-            icon: const Icon(Icons.chat_bubble_outline),
-          ),
-          PopupMenuButton<String>(
-            tooltip: 'More options',
-            onSelected: (value) {
-              switch (value) {
-                case 'achievements':
-                  _showAchievements();
-                case 'clear':
-                  _clearAllTasks();
-                case 'signout':
-                  _signOut();
-              }
-            },
-            itemBuilder: (_) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
-                value: 'achievements',
-                child: Text('Achievements'),
-              ),
-              const PopupMenuItem<String>(
-                value: 'clear',
-                child: Text('Remove all local tasks'),
-              ),
-              if (widget.session != null)
-                const PopupMenuItem<String>(
-                  value: 'signout',
-                  child: Text('Sign out'),
-                ),
-            ],
-          ),
-        ],
-      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _createTask,
         icon: const Icon(Icons.add),
         label: const Text('New task'),
       ),
-      body: Column(
-        children: <Widget>[
-          Card(
-            margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Row(
-                    children: <Widget>[
-                      CircleAvatar(child: Text('L${progress.level}')),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text(
-                              widget.displayName ?? 'My tasks',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            Text(
-                              '${progress.totalXp} XP · '
-                              '${_store.completedCount} of ${_store.tasks.length} complete',
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        tooltip: 'Achievements',
-                        onPressed: _showAchievements,
-                        icon: const Icon(Icons.emoji_events_outlined),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Semantics(
-                    label:
-                        'Level ${progress.level}. ${progress.xpIntoLevel} of '
-                        '${progress.xpForNextLevel} XP earned toward the next level.',
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: progress.fraction,
-                        minHeight: 8,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+      body: SafeArea(
+        bottom: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: _buildBody(context),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: TextField(
-              controller: _search,
-              onChanged: _store.setQuery,
-              decoration: InputDecoration(
-                labelText: 'Search tasks',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _store.query.isEmpty
-                    ? null
-                    : IconButton(
-                        tooltip: 'Clear search',
-                        onPressed: () {
-                          _search.clear();
-                          _store.setQuery('');
-                        },
-                        icon: const Icon(Icons.clear),
-                      ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Wrap(
-              spacing: 8,
-              children: <Widget>[
-                _filterChip(TaskFilter.all, 'All (${_store.tasks.length})'),
-                _filterChip(
-                  TaskFilter.pending,
-                  'To do (${_store.pendingCount})',
-                ),
-                _filterChip(
-                  TaskFilter.completed,
-                  'Done (${_store.completedCount})',
-                ),
-              ],
-            ),
-          ),
-          if (_store.pageCount > 1) _pagination(),
-          Expanded(child: _buildTaskList()),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _filterChip(TaskFilter filter, String label) {
-    return ChoiceChip(
-      label: Text(label),
-      selected: _store.filter == filter,
-      onSelected: (_) => _store.setFilter(filter),
-    );
-  }
-
-  Widget _buildTaskList() {
+  Widget _buildBody(BuildContext context) {
     if (_store.isLoading && !_store.hasLoaded) {
       return Center(
         child: SingleChildScrollView(
@@ -430,41 +293,408 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    final children = <Widget>[];
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(top: 12, bottom: 104),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _hero(context),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: _searchField(),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: _filters(context),
+          ),
+          if (_store.pageCount > 1) _pagination(context),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
+            child: _listHeading(context),
+          ),
+          if (_store.error != null) _errorBanner(_store.error!),
+          ..._taskSection(context),
+        ],
+      ),
+    );
+  }
 
-    if (_store.error != null) {
-      children.add(_errorBanner(_store.error!));
+  Widget _hero(BuildContext context) {
+    final theme = Theme.of(context);
+    final progress = _store.levelProgress;
+    final bool isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: AuxiliaColors.brandGradient,
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: AuxiliaColors.indigo.withValues(alpha: isDark ? 0.35 : 0.22),
+            blurRadius: 30,
+            offset: const Offset(0, 16),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 20, 12, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              _levelBadge(progress.level),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const Text(
+                      'WELCOME BACK',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      widget.displayName ?? 'My workspace',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${progress.totalXp} XP · '
+                      '${_store.completedCount} of ${_store.tasks.length} complete',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.82),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              _headerIconButton(
+                tooltip: 'Achievements',
+                icon: Icons.emoji_events_outlined,
+                onPressed: _showAchievements,
+              ),
+              const SizedBox(width: 6),
+              _headerMenu(),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Semantics(
+            label:
+                'Level ${progress.level}. ${progress.xpIntoLevel} of '
+                '${progress.xpForNextLevel} XP earned toward the next level.',
+            child: Column(
+              children: <Widget>[
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 12,
+                  runSpacing: 4,
+                  children: <Widget>[
+                    Text(
+                      'Level ${progress.level}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      '${progress.xpIntoLevel} / ${progress.xpForNextLevel} XP',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.78),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(
+                    value: progress.fraction,
+                    minHeight: 7,
+                    backgroundColor: Colors.white.withValues(alpha: 0.2),
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: <Widget>[
+                _statTile('To do', '${_store.pendingCount}'),
+                const SizedBox(width: 8),
+                _statTile('Done', '${_store.completedCount}'),
+                const SizedBox(width: 8),
+                _statTile('Total XP', '${progress.totalXp}'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _levelBadge(int level) {
+    return Container(
+      width: 50,
+      height: 50,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+      ),
+      child: Text(
+        'L$level',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  Widget _headerIconButton({
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback onPressed,
+  }) {
+    return IconButton(
+      tooltip: tooltip,
+      onPressed: onPressed,
+      icon: Icon(icon, size: 20),
+      style: IconButton.styleFrom(
+        foregroundColor: Colors.white,
+        backgroundColor: Colors.white.withValues(alpha: 0.14),
+        minimumSize: const Size(40, 40),
+        padding: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  Widget _headerMenu() {
+    return PopupMenuButton<String>(
+      tooltip: 'More options',
+      onSelected: (value) {
+        switch (value) {
+          case 'achievements':
+            _showAchievements();
+          case 'assistant':
+            _openAssistant();
+          case 'clear':
+            _clearAllTasks();
+          case 'signout':
+            _signOut();
+        }
+      },
+      itemBuilder: (_) => <PopupMenuEntry<String>>[
+        const PopupMenuItem<String>(
+          value: 'achievements',
+          child: Text('Achievements'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'assistant',
+          child: Text('AI assistant'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'clear',
+          child: Text('Remove all local tasks'),
+        ),
+        if (widget.session != null)
+          const PopupMenuItem<String>(
+            value: 'signout',
+            child: Text('Sign out'),
+          ),
+      ],
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Icon(Icons.more_horiz, color: Colors.white, size: 20),
+      ),
+    );
+  }
+
+  Widget _statTile(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.78),
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _searchField() {
+    return TextField(
+      controller: _search,
+      onChanged: _store.setQuery,
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        hintText: 'Search tasks',
+        prefixIcon: const Icon(Icons.search),
+        suffixIcon: _store.query.isEmpty
+            ? null
+            : IconButton(
+                tooltip: 'Clear search',
+                onPressed: () {
+                  _search.clear();
+                  _store.setQuery('');
+                },
+                icon: const Icon(Icons.clear),
+              ),
+      ),
+    );
+  }
+
+  Widget _filters(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: <Widget>[
+        _filterChip(context, TaskFilter.all, 'All (${_store.tasks.length})'),
+        _filterChip(
+          context,
+          TaskFilter.pending,
+          'To do (${_store.pendingCount})',
+        ),
+        _filterChip(
+          context,
+          TaskFilter.completed,
+          'Done (${_store.completedCount})',
+        ),
+      ],
+    );
+  }
+
+  Widget _filterChip(BuildContext context, TaskFilter filter, String label) {
+    final scheme = Theme.of(context).colorScheme;
+    final bool selected = _store.filter == filter;
+
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      showCheckmark: false,
+      onSelected: (_) => _store.setFilter(filter),
+      labelStyle: TextStyle(
+        color: selected ? scheme.primary : scheme.onSurfaceVariant,
+        fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+        fontSize: 13,
+      ),
+      selectedColor: scheme.primary.withValues(alpha: 0.12),
+      backgroundColor: scheme.surface,
+      side: BorderSide(
+        color: selected
+            ? scheme.primary.withValues(alpha: 0.4)
+            : scheme.outlineVariant,
+      ),
+      shape: const StadiumBorder(),
+    );
+  }
+
+  Widget _listHeading(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: Text(
+            'Your tasks',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleMedium,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '${_store.filteredCount} shown',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _taskSection(BuildContext context) {
+    if (_store.tasks.isEmpty) {
+      return <Widget>[_emptyState(context)];
     }
 
-    if (_store.tasks.isEmpty) {
-      children.add(_emptyState());
-    } else if (_store.filteredCount == 0) {
-      children.add(
-        const Padding(
-          padding: EdgeInsets.all(32),
+    if (_store.filteredCount == 0) {
+      return <Widget>[
+        Padding(
+          padding: const EdgeInsets.all(32),
           child: Text(
             'No tasks match your search or filter.',
             textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
-      );
-    } else {
-      children.addAll(
-        _store.visibleTasks.map(
+      ];
+    }
+
+    return _store.visibleTasks
+        .map(
           (task) => TaskCard(
             task: task,
             onToggle: () => _toggleTask(task),
             onEdit: () => _editTask(task),
             onDelete: () => _deleteTask(task),
           ),
-        ),
-      );
-    }
-
-    return ListView(
-      padding: const EdgeInsets.only(top: 4, bottom: 96),
-      children: children,
-    );
+        )
+        .toList(growable: false);
   }
 
   Widget _errorBanner(String message) {
@@ -474,7 +704,8 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: scheme.errorContainer,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: scheme.error.withValues(alpha: 0.25)),
       ),
       child: Row(
         children: <Widget>[
@@ -490,55 +721,100 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             tooltip: 'Dismiss message',
             onPressed: _store.clearError,
-            icon: const Icon(Icons.close),
+            icon: const Icon(Icons.close, size: 20),
           ),
         ],
       ),
     );
   }
 
-  Widget _emptyState() {
+  Widget _emptyState(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(32, 48, 32, 32),
-      child: Column(
-        children: <Widget>[
-          const Icon(Icons.checklist_rtl, size: 64),
-          const SizedBox(height: 16),
-          Text('No tasks yet', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          const Text(
-            'Create your first task to start tracking progress and earning XP.',
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
-          FilledButton.icon(
-            onPressed: _createTask,
-            icon: const Icon(Icons.add),
-            label: const Text('Create your first task'),
-          ),
-        ],
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(24, 32, 24, 28),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: theme.colorScheme.outlineVariant),
+        ),
+        child: Column(
+          children: <Widget>[
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                gradient: AuxiliaColors.brandGradient,
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: const Icon(
+                Icons.checklist_rtl,
+                size: 34,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text('No tasks yet', style: theme.textTheme.titleLarge),
+            const SizedBox(height: 6),
+            Text(
+              'Create your first task to start tracking progress and earning XP.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _createTask,
+                child: const Text(
+                  'Create your first task',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _pagination() {
+  Widget _pagination(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          IconButton(
-            tooltip: 'Previous page',
-            onPressed: _store.canGoToPreviousPage ? _store.previousPage : null,
-            icon: const Icon(Icons.chevron_left),
-          ),
-          Text('Page ${_store.page + 1} of ${_store.pageCount}'),
-          IconButton(
-            tooltip: 'Next page',
-            onPressed: _store.canGoToNextPage ? _store.nextPage : null,
-            icon: const Icon(Icons.chevron_right),
-          ),
-        ],
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: theme.colorScheme.outlineVariant),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            IconButton(
+              tooltip: 'Previous page',
+              onPressed: _store.canGoToPreviousPage
+                  ? _store.previousPage
+                  : null,
+              icon: const Icon(Icons.chevron_left),
+            ),
+            Text(
+              'Page ${_store.page + 1} of ${_store.pageCount}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            IconButton(
+              tooltip: 'Next page',
+              onPressed: _store.canGoToNextPage ? _store.nextPage : null,
+              icon: const Icon(Icons.chevron_right),
+            ),
+          ],
+        ),
       ),
     );
   }

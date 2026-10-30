@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'screens/welcome_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(const AuxiliaApp());
@@ -14,21 +15,9 @@ class AuxiliaApp extends StatelessWidget {
     return MaterialApp(
       title: 'Auxilia',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
-        useMaterial3: true,
-        inputDecorationTheme: InputDecorationTheme(
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          ),
-        ),
-      ),
+      theme: AuxiliaTheme.light(),
+      darkTheme: AuxiliaTheme.dark(),
+      themeMode: ThemeMode.system,
       home: const WelcomeScreen(),
     );
   }
