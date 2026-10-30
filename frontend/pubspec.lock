@@ -526,7 +526,11 @@ packages:
     source: hosted
     version: "15.4.0"
   web:
+<<<<<<< HEAD
     dependency: transitive
+=======
+    dependency: "direct main"
+>>>>>>> 0921f7f2bccaf4e3fe1ffe928e521be34e91e17b
     description:
       name: web
       sha256: e119e82ac4795c7925103b7cf3768191f33941b99e7ccffbd6c645201d9f606b
