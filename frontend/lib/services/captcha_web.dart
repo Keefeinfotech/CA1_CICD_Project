@@ -65,8 +65,7 @@ Future<String?> requestCaptchaToken({required String siteKey}) async {
   }
 
   final completer = Completer<String?>();
-  final container =
-      web.document.createElement('div') as web.HTMLDivElement;
+  final container = web.document.createElement('div') as web.HTMLDivElement;
   container.id = 'auxilia-turnstile-${DateTime.now().microsecondsSinceEpoch}';
   container.style.display = 'none';
   web.document.body?.append(container);
@@ -76,10 +75,7 @@ Future<String?> requestCaptchaToken({required String siteKey}) async {
   }
 
   final options = JSObject()
-    ..setProperty(
-      'sitekey'.toJS,
-      siteKey.toJS,
-    )
+    ..setProperty('sitekey'.toJS, siteKey.toJS)
     ..setProperty(
       'callback'.toJS,
       ((JSString token) {
