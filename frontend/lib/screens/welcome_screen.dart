@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
 import '../services/session_store.dart';
+import '../theme/app_theme.dart';
 import 'ai_chat_screen.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
@@ -85,13 +86,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: <Color>[Color(0xFF4F46E5), Color(0xFF06B6D4)],
-          ),
-        ),
+        decoration: const BoxDecoration(gradient: AuxiliaColors.brandGradient),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
