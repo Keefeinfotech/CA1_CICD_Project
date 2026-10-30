@@ -1,10 +1,7 @@
+
 /*
  * File Name: server.ts
-<<<<<<< HEAD
- * Description: Starts the API after connecting to MongoDB.
-=======
  * Description: Validates runtime configuration and starts the Auxilia API.
->>>>>>> 0921f7f2bccaf4e3fe1ffe928e521be34e91e17b
  * Author: Keefe Chen
  * Date: 27 October 2026
  */
@@ -13,70 +10,59 @@ import "dotenv/config";
 import process from "node:process";
 import mongoose from "mongoose";
 import app from "./app.js";
-<<<<<<< HEAD
-<<<<<<< HEAD
-import { connectDatabase } from "./database.js";
-
-const port = Number(process.env.PORT) || 3000;
-
-async function startServer(): Promise<void> {
-  try {
-    await connectDatabase();
-
-    app.listen(port, () => {
-      console.log(`Server running on port ${port}`);
-    });
-  } catch (error) {
-    console.error("Failed to start server:", error);
-    process.exit(1);
-  }
-}
-
-startServer();
-=======
-import process from "process";
-=======
->>>>>>> 0921f7f2bccaf4e3fe1ffe928e521be34e91e17b
 import connectDB from "../config/database.js";
 import { assertRuntimeEnv, EnvError } from "./config/env.js";
 
 const port = Number(process.env.PORT) || 3000;
 
-const start = async () => {
+const start = async (): Promise<void> => {
+  // Validate environment variables before starting the application.
   try {
     assertRuntimeEnv();
   } catch (err) {
-    const message = err instanceof EnvError ? err.message : "Invalid configuration";
+    const message =
+      err instanceof EnvError
+        ? err.message
+        : "Invalid configuration";
+
     console.error(`[startup] ${message}`);
     process.exit(1);
   }
 
+  // Establish the database connection.
   try {
     await connectDB();
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown database error";
-    console.error(`[startup] Database connection failed: ${message}`);
+    const message =
+      err instanceof Error
+        ? err.message
+        : "Unknown database error";
+
+    console.error(
+      `[startup] Database connection failed: ${message}`
+    );
+
     process.exit(1);
   }
 
+  // Start the Express server after successful database connection.
   const server = app.listen(port, () => {
     console.log(`Server running on port ${port}`);
   });
 
-  const shutdown = async (signal: string) => {
+  // Gracefully shut down the server and database connection.
+  const shutdown = (signal: string): void => {
     console.log(`[shutdown] Received ${signal}`);
+
     server.close(() => {
-      void mongoose.connection.close().finally(() => process.exit(0));
+      void mongoose.connection
+        .close()
+        .finally(() => process.exit(0));
     });
   };
 
-  process.on("SIGTERM", () => void shutdown("SIGTERM"));
-  process.on("SIGINT", () => void shutdown("SIGINT"));
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 };
 
-<<<<<<< HEAD
-start();
->>>>>>> fb6bdc89e53b88575b70315361baf5131f501801
-=======
 void start();
->>>>>>> 0921f7f2bccaf4e3fe1ffe928e521be34e91e17b
