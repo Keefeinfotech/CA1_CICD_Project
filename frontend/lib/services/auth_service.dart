@@ -1,41 +1,76 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'api_client.dart';
+import 'captcha.dart';
+import 'session_store.dart';
 
-// Simple auth service - replace baseUrl with your backend URL
 class AuthService {
-  static const String baseUrl = 'http://localhost:3000';
+  AuthService({ApiClient? api, SessionStore? sessions})
+    : _api = api ?? ApiClient(),
+      _sessions = sessions ?? SessionStore();
 
-  Future<Map<String, dynamic>> signup({
+  /// Public Turnstile site key, supplied at build time:
+  ///   flutter run --dart-define=TURNSTILE_SITE_KEY=...
+  /// Empty means CAPTCHA is not used on this client (local development).
+  static const String captchaSiteKey = String.fromEnvironment(
+    'TURNSTILE_SITE_KEY',
+  );
+
+  bool get requiresCaptcha => isCaptchaSupported && captchaSiteKey.isNotEmpty;
+
+  final ApiClient _api;
+  final SessionStore _sessions;
+
+  Future<Session> signup({
     String? name,
     required String email,
     required String password,
   }) async {
-    final uri = Uri.parse('$baseUrl/api/auth/signup');
-    final res = await http.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        if (name != null && name.isNotEmpty) 'name': name,
-        'email': email,
-        'password': password,
-      }),
-    );
-    return jsonDecode(res.body) as Map<String, dynamic>;
+    final captchaToken = await _captchaToken();
+    final data = await _api.postJson('/api/auth/signup', <String, dynamic>{
+      if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
+      'email': email.trim(),
+      'password': password,
+      'captchaToken': ?captchaToken,
+    });
+    return _persist(data);
   }
 
-  Future<Map<String, dynamic>> login({
+  Future<Session> login({
     required String email,
     required String password,
   }) async {
-    final uri = Uri.parse('$baseUrl/api/auth/login');
-    final res = await http.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'email': email,
-        'password': password,
-      }),
-    );
-    return jsonDecode(res.body) as Map<String, dynamic>;
+    final captchaToken = await _captchaToken();
+    final data = await _api.postJson('/api/auth/login', <String, dynamic>{
+      'email': email.trim(),
+      'password': password,
+      'captchaToken': ?captchaToken,
+    });
+    return _persist(data);
+  }
+
+  Future<Session?> restore() => _sessions.read();
+
+  Future<void> logout() => _sessions.clear();
+
+  Future<Session> _persist(Map<String, dynamic> data) async {
+    final session = Session.fromApi(data);
+    await _sessions.write(session);
+    return session;
+  }
+
+  /// Requests a Turnstile token when the client is configured for CAPTCHA.
+  ///
+  /// Throws [ApiException] when verification cannot be completed so the user
+  /// sees a clear message instead of a silent failure.
+  Future<String?> _captchaToken() async {
+    if (!requiresCaptcha) return null;
+
+    final token = await requestCaptchaToken(siteKey: captchaSiteKey);
+    if (token == null || token.isEmpty) {
+      throw ApiException(
+        'Verification could not be completed. Please try again.',
+        code: 'CAPTCHA_FAILED',
+      );
+    }
+    return token;
   }
 }

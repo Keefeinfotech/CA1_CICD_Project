@@ -1,4 +1,3 @@
-
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -6,54 +5,78 @@ import rateLimit from "express-rate-limit";
 import { swaggerDocument, swaggerUi } from "./swagger.js";
 import authRoutes from "./routes/auth.js";
 import aiRoutes from "./routes/ai.js";
-import { errorHandler } from "./middleware/error.js";
+import { errorHandler, notFound } from "./middleware/error.js";
 
 const app = express();
 
-// Security headers
+app.disable("x-powered-by");
+
+// Behind a reverse proxy (Railway, Nginx, Cloudflare) trust the first hop so
+// rate limiting and CAPTCHA see the real client IP instead of the proxy IP.
+if (process.env.TRUST_PROXY === "true") {
+  app.set("trust proxy", 1);
+}
+
 app.use(helmet());
 
-// CORS - restrict in production via env
-const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:3000")
+const allowedOrigins = (
+  process.env.CORS_ORIGIN || "http://localhost:3000,http://localhost:5173"
+)
   .split(",")
-  .map((o) => o.trim())
+  .map((origin) => origin.trim())
   .filter(Boolean);
 
 app.use(
   cors({
+    // Explicit allow-list. Requests without an Origin header (native apps,
+    // curl, server-to-server) are allowed; browsers always send one.
     origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, curl) in dev; restrict in prod
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error("Not allowed by CORS"));
+      return callback(new Error("Origin not allowed by CORS"));
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Captcha-Token"],
+    maxAge: 600,
+    optionsSuccessStatus: 204,
   })
 );
 
-// Body parsing with limits
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 
-// Rate limiting for auth endpoints
+const configuredAuthLimit = Number(process.env.AUTH_RATE_LIMIT_MAX);
+const authLimit =
+  Number.isInteger(configuredAuthLimit) && configuredAuthLimit > 0
+    ? configuredAuthLimit
+    : 10;
+
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // limit each IP to 10 requests per windowMs for auth
+  windowMs: 15 * 60 * 1000,
+  max: authLimit,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests, please try again later." },
 });
 
-// Rate limiting for AI endpoints
+const configuredAiLimit = Number(process.env.AI_RATE_LIMIT_PER_USER);
+const aiLimit =
+  Number.isInteger(configuredAiLimit) && configuredAiLimit > 0
+    ? configuredAiLimit
+    : 20;
+
 const aiLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 20, // limit each IP to 20 AI requests per hour
+  windowMs: 60 * 60 * 1000,
+  max: aiLimit,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many AI requests, please try again later." },
 });
 
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+if (process.env.NODE_ENV !== "production") {
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+}
 
 app.get("/api/health", (_req, res) => {
   res.status(200).json({
@@ -64,6 +87,8 @@ app.get("/api/health", (_req, res) => {
 
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/ai", aiLimiter, aiRoutes);
+
+app.use(notFound);
 app.use(errorHandler);
 
 export default app;
