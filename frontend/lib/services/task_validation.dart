@@ -48,19 +48,24 @@ String? validateSchedule({DateTime? dueDate, DateTime? reminderAt}) {
   return null;
 }
 
-void validateDraft(TaskDraft draft) {
+/// Validates a [TaskDraft].
+///
+/// Returns a [String] error message if validation fails, or `null` if valid.
+String? validateDraft(TaskDraft draft) {
   final titleError = validateTitle(draft.title);
-  if (titleError != null) throw TaskValidationException(titleError);
+  if (titleError != null) return titleError;
 
   final notesError = validateNotes(draft.notes);
-  if (notesError != null) throw TaskValidationException(notesError);
+  if (notesError != null) return notesError;
 
   final courseError = validateCourse(draft.course);
-  if (courseError != null) throw TaskValidationException(courseError);
+  if (courseError != null) return courseError;
 
   final scheduleError = validateSchedule(
     dueDate: draft.dueDate,
     reminderAt: draft.reminderAt,
   );
-  if (scheduleError != null) throw TaskValidationException(scheduleError);
+  if (scheduleError != null) return scheduleError;
+
+  return null;
 }

@@ -314,12 +314,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildBody(BuildContext context) {
     if (_store.isLoading && !_store.hasLoaded) {
-      return Center(
+      return const Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: const <Widget>[
+            children: <Widget>[
               CircularProgressIndicator(),
               SizedBox(height: 12),
               Text('Loading your tasks...'),

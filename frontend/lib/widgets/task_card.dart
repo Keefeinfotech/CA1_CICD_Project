@@ -20,7 +20,7 @@ class TaskCard extends StatelessWidget {
 
   static const Map<TaskPriority, IconData> _priorityIcons =
       <TaskPriority, IconData>{
-        TaskPriority.low: Icons.arrow_downward,
+        TaskPriority.low: Icons.trending_up,
         TaskPriority.medium: Icons.remove,
         TaskPriority.high: Icons.priority_high,
       };

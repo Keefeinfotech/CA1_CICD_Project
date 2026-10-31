@@ -13,27 +13,30 @@ afterEach(() => {
 
 describe("authorize", () => {
   it("rejects an unauthenticated request", () => {
-    expect(() => authorize("admin")(
+    const next = vi.fn();
+    authorize("admin")(
       mockRequest(),
       {} as Response,
-      vi.fn() as NextFunction
-    )).toThrow(
+      next as NextFunction
+    );
+    expect(next).toHaveBeenCalledWith(
       expect.objectContaining({ status: 401, code: "UNAUTHORIZED" })
     );
   });
 
   it("rejects a role that is not allowed", () => {
-    vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const next = vi.fn();
-
     expect(() =>
       authorize("admin")(
         mockRequest({ userId: "user-1", userRole: "user" }),
         {} as Response,
         next as NextFunction
       )
-    ).toThrow(expect.objectContaining({ status: 403, code: "FORBIDDEN" }));
-    expect(next).not.toHaveBeenCalled();
+    ).not.toThrow();
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 403, code: "FORBIDDEN" })
+    );
+    expect(next).toHaveBeenCalledTimes(1);
   });
 
   it("allows an explicitly permitted role", () => {
