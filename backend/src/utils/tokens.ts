@@ -1,6 +1,7 @@
-import { randomUUID } from "node:crypto";
+import { JWT_ISSUER } from "../constants/security.js";
+import { getJwtExpiresIn, getJwtSecret } from "../config/environment.js";
 import jwt, { type JwtPayload, type SignOptions } from "jsonwebtoken";
-import { getJwtExpiresIn, getJwtSecret } from "../config/env.js";
+import { randomUUID } from "node:crypto";
 
 export interface AccessTokenPayload extends JwtPayload {
   sub: string;
@@ -10,7 +11,6 @@ export interface AccessTokenPayload extends JwtPayload {
 
 export interface SignedAccessToken {
   token: string;
-  // The JWT id doubles as the session id for single-session enforcement.
   sessionId: string;
 }
 
@@ -23,17 +23,21 @@ export const signAccessToken = (
     subject: userId,
     jwtid: sessionId,
     expiresIn: getJwtExpiresIn(),
-    issuer: "auxilia-api",
+    issuer: JWT_ISSUER,
+    algorithm: "HS256",
   } as SignOptions;
 
   const token = jwt.sign({ email }, getJwtSecret(), options);
   return { token, sessionId };
 };
 
-export const verifyAccessToken = (token: string): AccessTokenPayload | null => {
+export const verifyAccessToken = (
+  token: string
+): AccessTokenPayload | null => {
   try {
     const payload = jwt.verify(token, getJwtSecret(), {
-      issuer: "auxilia-api",
+      issuer: JWT_ISSUER,
+      algorithms: ["HS256"],
     });
 
     if (

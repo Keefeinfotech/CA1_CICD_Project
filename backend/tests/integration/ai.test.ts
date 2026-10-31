@@ -1,33 +1,37 @@
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../src/models/User.js", () => ({
+vi.mock("../../src/modules/auth/auth.model.js", () => ({
   User: {
     findById: vi.fn(),
   },
 }));
 
 import app from "../../src/app";
-import { User } from "../../src/models/User.js";
+import { User } from "../../src/modules/auth/auth.model.js";
 import { signAccessToken } from "../../src/utils/tokens";
 
 const userModel = User as any;
+
+const queryResult = (value: unknown) => ({
+  exec: vi.fn().mockResolvedValue(value),
+});
 
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
-// Builds a token and a matching user document so single-session checks pass.
 const authenticate = (): string => {
   const { token, sessionId } = signAccessToken("user-1", "ada@example.com");
-  userModel.findById.mockReturnValue({
-    lean: vi.fn().mockResolvedValue({
+  userModel.findById.mockReturnValue(
+    queryResult({
       _id: "user-1",
       email: "ada@example.com",
+      role: "user",
       activeSessionId: sessionId,
       activeSessionExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
-    }),
-  });
+    })
+  );
   return token;
 };
 

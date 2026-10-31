@@ -7,14 +7,14 @@ This documents the login/signup hardening added on `feature/enterprise-auth`.
 | Control | How it works | Where |
 | --- | --- | --- |
 | CAPTCHA (Cloudflare Turnstile) | Optional-by-default, enforced in production. Token verified server-side via Cloudflare `siteverify`. | `backend/src/utils/captcha.ts`, `backend/src/middleware/captcha.ts` |
-| Single active session | Each login gets a unique JWT `jti`; only the newest `jti` is stored on the user. Older tokens return `SESSION_REPLACED`. | `backend/src/utils/session.ts`, `backend/src/middleware/auth.ts` |
+| Single active session | Each login gets a unique JWT `jti`; only the newest `jti` is stored on the user. Older tokens return `SESSION_REPLACED`. | `backend/src/utils/session.ts`, `backend/src/middleware/authenticate.ts`, `backend/src/modules/auth/auth.service.ts` |
 | Logout | Clears the stored session so the token cannot be reused. | `POST /api/auth/logout` |
 | Current user | Session-aware identity endpoint. | `GET /api/auth/me` |
-| CORS allow-list | Explicit origins, methods, headers and preflight cache. Unknown origins get `403 CORS_FORBIDDEN`. | `backend/src/app.ts`, `backend/src/middleware/error.ts` |
-| Rate limiting | Auth endpoints are limited per IP; AI endpoints separately. | `backend/src/app.ts` |
-| Secure headers | `helmet` + `x-powered-by` disabled. | `backend/src/app.ts` |
+| CORS allow-list | Explicit origins, methods, headers and preflight cache. Unknown origins get `403 CORS_FORBIDDEN`. | `backend/src/app.ts`, `backend/src/config/security.ts`, `backend/src/middleware/errorHandler.ts` |
+| Rate limiting | Auth endpoints are limited per IP; AI endpoints per authenticated user. | `backend/src/middleware/rateLimiter.ts`, `backend/src/modules/auth/auth.routes.ts`, `backend/src/modules/ai/ai.routes.ts` |
+| Secure headers | `helmet` + `x-powered-by` disabled. | `backend/src/app.ts`, `backend/src/config/security.ts` |
 | Proxy awareness | `TRUST_PROXY=true` so real client IPs are used behind Railway/Cloudflare. | `backend/src/app.ts` |
-| Startup validation | Production refuses to boot without CAPTCHA or CORS config. | `backend/src/config/env.ts` |
+| Startup validation | Production refuses to boot without CAPTCHA or CORS config. | `backend/src/config/environment.ts` |
 
 ## Configuration
 
@@ -50,10 +50,10 @@ Without the site key the client skips CAPTCHA, which matches local development.
 ## Verified
 
 ```
-backend  : npm run typecheck -> clean
-backend  : npm test          -> 49 passed (9 files)
-frontend : flutter analyze   -> no issues
-frontend : flutter test      -> 58 passed
+backend  : npm run typecheck     -> clean
+backend  : npm run test:coverage -> 90 passed (14 files), ~95% statements
+frontend : flutter analyze       -> no issues
+frontend : flutter test          -> 58 passed
 ```
 
 ## Not done (needs your decision)
