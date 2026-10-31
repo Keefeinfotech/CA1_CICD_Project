@@ -24,7 +24,15 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    final captchaToken = await _captchaToken();
+    String? captchaToken;
+    if (requiresCaptcha) {
+      try {
+        captchaToken = await _captchaToken();
+      } on ApiException {
+        rethrow;
+      }
+    }
+
     final data = await _api.postJson('/api/auth/signup', <String, dynamic>{
       if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
       'email': email.trim(),
@@ -38,7 +46,15 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    final captchaToken = await _captchaToken();
+    String? captchaToken;
+    if (requiresCaptcha) {
+      try {
+        captchaToken = await _captchaToken();
+      } on ApiException {
+        rethrow;
+      }
+    }
+
     final data = await _api.postJson('/api/auth/login', <String, dynamic>{
       'email': email.trim(),
       'password': password,

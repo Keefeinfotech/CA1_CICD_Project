@@ -43,3 +43,9 @@ export const sessionReplaced = (): AppError =>
     "SESSION_REPLACED",
     "Session ended. This account signed in on another device."
   );
+
+export const badRequest = (message = "Invalid request"): AppError =>
+  new AppError(400, "BAD_REQUEST", message);
+
+export const notFound = (message = "Not found"): AppError =>
+  new AppError(404, "NOT_FOUND", message);

@@ -7,3 +7,7 @@ export const requireUserId = (req: Request): string => {
   }
   return req.userId;
 };
+
+export function getWelcomeMessage(name: string): string {
+  return `Hello, ${name}! TypeScript NodeNext setup is working.`;
+}

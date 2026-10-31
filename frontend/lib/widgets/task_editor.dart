@@ -80,7 +80,38 @@ class _TaskEditorState extends State<TaskEditor> {
   }
 
   void _save() {
-    if (!_formKey.currentState!.validate()) return;
+    final draft = TaskDraft(
+      title: _title.text.trim(),
+      notes: _notes.text.trim(),
+      course: _course.text.trim(),
+      priority: _priority,
+      dueDate: _dueDate,
+      reminderAt: _reminderAt,
+    );
+
+    final titleError = validateTitle(draft.title);
+    if (titleError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(titleError)),
+      );
+      return;
+    }
+
+    final notesError = validateNotes(draft.notes);
+    if (notesError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(notesError)),
+      );
+      return;
+    }
+
+    final courseError = validateCourse(draft.course);
+    if (courseError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(courseError)),
+      );
+      return;
+    }
 
     final scheduleError = validateSchedule(
       dueDate: _dueDate,
@@ -91,16 +122,7 @@ class _TaskEditorState extends State<TaskEditor> {
       return;
     }
 
-    Navigator.of(context).pop(
-      TaskDraft(
-        title: _title.text.trim(),
-        notes: _notes.text.trim(),
-        course: _course.text.trim(),
-        priority: _priority,
-        dueDate: _dueDate,
-        reminderAt: _reminderAt,
-      ),
-    );
+    Navigator.of(context).pop(draft);
   }
 
   @override

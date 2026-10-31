@@ -1,19 +1,19 @@
 import { Router } from "express";
 
-import authRoutes from "./auth.js";
-import aiRoutes from "./ai.js";
-import userRoutes from "./user.routes.js";
-import taskRoutes from "./task.routes.js";
-import roadmapRoutes from "./roadmap.routes.js";
-import rubricRoutes from "./rubric.routes.js";
-import feedbackRoutes from "./feedback.routes.js";
-import calendarRoutes from "./calendar.routes.js";
-import progressRoutes from "./progress.routes.js";
+import authRoutes from "./auth.ts";
+import aiRoutes from "./ai.ts";
+import userRoutes from "./user.routes.ts";
+import taskRoutes from "./task.routes.ts";
+import roadmapRoutes from "./roadmap.routes.ts";
+import rubricRoutes from "./rubric.routes.ts";
+import feedbackRoutes from "./feedback.routes.ts";
+import calendarRoutes from "./calendar.routes.ts";
+import progressRoutes from "./progress.routes.ts";
 
 // Group-related routes
-import groupRoutes from "./groups/group.routes.js";
-import memberRoutes from "./groups/member.routes.js";
-import sessionRoutes from "./groups/session.routes.js";
+import groupRoutes from "./groups/group.routes.ts";
+import memberRoutes from "./groups/member.routes.ts";
+import sessionRoutes from "./groups/session.routes.ts";
 
 const router = Router();
 

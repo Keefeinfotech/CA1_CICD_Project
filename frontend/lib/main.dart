@@ -1,25 +1,45 @@
-
-// File Name: main.dart
-// Description: Application entry point and root configuration for Auxilia.
-// Author: Keefe Chen
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'routing/app_router.dart';
-import 'screens/startup_gate.dart';
-import 'services/auth_service.dart';
-import 'services/task_store.dart';
+import 'screens/welcome_screen.dart';
+import 'screens/login_screen.dart';
+import 'screens/signup_screen.dart';
+import 'screens/home_screen.dart';
+import 'screens/ai_chat_screen.dart';
 import 'theme/app_theme.dart';
 
-// Application navigation configuration
+// Define routes as constants for consistency
+class AppRoutes {
+  static const String initial = '/';
+  static const String login = '/login';
+  static const String signup = '/signup';
+  static const String home = '/home';
+  static const String assistant = '/assistant';
+}
+
 final GoRouter appRouter = GoRouter(
-  initialLocation: '/',
+  initialLocation: AppRoutes.initial,
   routes: [
     GoRoute(
-      path: '/',
+      path: AppRoutes.initial,
       builder: (context, state) => const WelcomeScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.login,
+      builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.signup,
+      builder: (context, state) => const SignupScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.home,
+      builder: (context, state) => const HomeScreen(ownerId: 'local'),
+    ),
+    GoRoute(
+      path: AppRoutes.assistant,
+      builder: (context, state) => const AiChatScreen(),
     ),
   ],
 );
@@ -33,10 +53,7 @@ void main() {
 }
 
 class AuxiliaApp extends StatelessWidget {
-  const AuxiliaApp({super.key, this.auth, this.store});
-
-  final AuthService? auth;
-  final TaskStore? store;
+  const AuxiliaApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -46,13 +63,9 @@ class AuxiliaApp extends StatelessWidget {
       theme: AuxiliaTheme.light(),
       darkTheme: AuxiliaTheme.dark(),
       themeMode: ThemeMode.system,
-<<<<<<< HEAD
-      routerConfig: appRouter,
-=======
-      onGenerateRoute: AppRouter.onGenerateRoute,
-      home: StartupGate(auth: auth, store: store),
->>>>>>> da0726bcb826a09906dd470d62c2be4b695dbe25
+      routerDelegate: appRouter.routerDelegate,
+      routeInformationProvider: appRouter.routeInformationProvider,
+      routeInformationParser: appRouter.routeInformationParser,
     );
   }
 }
-

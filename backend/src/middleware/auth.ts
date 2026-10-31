@@ -11,8 +11,8 @@ import {
   Response,
 } from "express";
 
-import { User } from "../models/User.js";
-import { allowConcurrentSessions } from "../config/env.js";
+import { User } from "../modules/auth/auth.model.ts";
+import { allowConcurrentSessions } from "../config/environment.ts";
 import { unauthorized } from "../utils/AppError.js";
 import { isSessionActive } from "../utils/session.js";
 import { verifyAccessToken } from "../utils/tokens.js";
