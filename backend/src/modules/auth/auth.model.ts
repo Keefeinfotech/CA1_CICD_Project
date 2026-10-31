@@ -1,12 +1,12 @@
-import mongoose, { Document, Schema } from "mongoose";
+import mongoose, { type Document, Schema } from "mongoose";
+import { USER_ROLES, type UserRole } from "../../constants/security.js";
 
 export interface IUser extends Document {
   name?: string;
   email: string;
   passwordHash: string;
+  role: UserRole;
   lastLoginAt?: Date | null;
-  // Single-session control: the jti of the newest login is stored here.
-  // A token whose jti no longer matches is treated as replaced (logged out).
   activeSessionId?: string | null;
   activeSessionExpiresAt?: Date | null;
   createdAt: Date;
@@ -25,6 +25,12 @@ const UserSchema = new Schema<IUser>(
       maxlength: 254,
     },
     passwordHash: { type: String, required: true, select: false },
+    role: {
+      type: String,
+      enum: USER_ROLES,
+      default: "user",
+      required: true,
+    },
     lastLoginAt: { type: Date, default: null },
     activeSessionId: { type: String, default: null },
     activeSessionExpiresAt: { type: Date, default: null },

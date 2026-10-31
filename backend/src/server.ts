@@ -1,49 +1,60 @@
-/*
- * File Name: server.ts
- * Description: Validates runtime configuration and starts the Auxilia API.
- * Author: Keefe Chen
- * Date: 27 October 2026
- */
-
 import "dotenv/config";
 import process from "node:process";
-import mongoose from "mongoose";
 import app from "./app.js";
-import connectDB from "../config/database.js";
-import { assertRuntimeEnv, EnvError } from "./config/env.js";
+import { connectDatabase, disconnectDatabase } from "./config/database.js";
+import {
+  assertRuntimeEnv,
+  EnvError,
+  getPort,
+} from "./config/environment.js";
 
-const port = Number(process.env.PORT) || 3000;
-
-const start = async () => {
+const start = async (): Promise<void> => {
   try {
     assertRuntimeEnv();
   } catch (err) {
-    const message = err instanceof EnvError ? err.message : "Invalid configuration";
+    const message =
+      err instanceof EnvError ? err.message : "Invalid configuration";
     console.error(`[startup] ${message}`);
     process.exit(1);
   }
 
   try {
-    await connectDB();
+    await connectDatabase();
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown database error";
+    const message =
+      err instanceof Error ? err.message : "Unknown database error";
     console.error(`[startup] Database connection failed: ${message}`);
     process.exit(1);
   }
 
+  const port = getPort();
   const server = app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+    console.log(`[startup] Server running on port ${port}`);
   });
 
-  const shutdown = async (signal: string) => {
+  let shuttingDown = false;
+
+  const shutdown = (signal: string): void => {
+    if (shuttingDown) return;
+    shuttingDown = true;
     console.log(`[shutdown] Received ${signal}`);
+
+    const forceExit = setTimeout(() => {
+      console.error("[shutdown] Forced exit after timeout");
+      process.exit(1);
+    }, 10_000);
+    forceExit.unref();
+
     server.close(() => {
-      void mongoose.connection.close().finally(() => process.exit(0));
+      void disconnectDatabase().finally(() => {
+        clearTimeout(forceExit);
+        process.exit(0);
+      });
     });
   };
 
-  process.on("SIGTERM", () => void shutdown("SIGTERM"));
-  process.on("SIGINT", () => void shutdown("SIGINT"));
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 };
 
 void start();

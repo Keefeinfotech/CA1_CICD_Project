@@ -1,5 +1,5 @@
-import { NextFunction, Request, Response } from "express";
-import { ZodError, type ZodTypeAny } from "zod";
+import type { NextFunction, Request, Response } from "express";
+import { ZodError, type ZodType } from "zod";
 
 interface FieldIssue {
   path: string;
@@ -12,18 +12,30 @@ const toFieldIssues = (error: ZodError): FieldIssue[] =>
     message: issue.message,
   }));
 
-export const validate =
-  (schema: ZodTypeAny) =>
+export const validateRequest =
+  (schema: ZodType) =>
   (req: Request, res: Response, next: NextFunction) => {
     try {
       const parsed = schema.parse({
         body: req.body,
         query: req.query,
         params: req.params,
-      });
+      }) as {
+        body?: unknown;
+        query?: unknown;
+        params?: unknown;
+      };
 
-      if (parsed && typeof parsed === "object" && "body" in parsed) {
-        req.body = parsed.body;
+      if (parsed.body !== undefined) req.body = parsed.body;
+      if (parsed.params !== undefined) {
+        req.params = parsed.params as Request["params"];
+      }
+      if (parsed.query !== undefined) {
+        Object.defineProperty(req, "query", {
+          value: parsed.query,
+          writable: true,
+          configurable: true,
+        });
       }
 
       return next();
