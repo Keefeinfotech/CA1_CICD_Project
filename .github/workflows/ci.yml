@@ -58,6 +58,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Type check
         run: npm run typecheck
 
@@ -96,13 +99,16 @@ jobs:
         run: flutter pub get
 
       - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed lib test
+        run: dart format --output=none --set-exit-if-changed lib test tool
 
       - name: Analyze
         run: flutter analyze
 
       - name: Run tests with coverage
         run: flutter test --coverage
+
+      - name: Enforce coverage gate
+        run: dart run tool/check_coverage.dart 60
 
       - name: Build (web)
         run: flutter build web --release

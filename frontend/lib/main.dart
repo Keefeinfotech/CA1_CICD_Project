@@ -7,7 +7,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'screens/welcome_screen.dart';
+import 'routing/app_router.dart';
+import 'screens/startup_gate.dart';
+import 'services/auth_service.dart';
+import 'services/task_store.dart';
 import 'theme/app_theme.dart';
 
 // Application navigation configuration
@@ -30,7 +33,10 @@ void main() {
 }
 
 class AuxiliaApp extends StatelessWidget {
-  const AuxiliaApp({super.key});
+  const AuxiliaApp({super.key, this.auth, this.store});
+
+  final AuthService? auth;
+  final TaskStore? store;
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +46,12 @@ class AuxiliaApp extends StatelessWidget {
       theme: AuxiliaTheme.light(),
       darkTheme: AuxiliaTheme.dark(),
       themeMode: ThemeMode.system,
+<<<<<<< HEAD
       routerConfig: appRouter,
+=======
+      onGenerateRoute: AppRouter.onGenerateRoute,
+      home: StartupGate(auth: auth, store: store),
+>>>>>>> da0726bcb826a09906dd470d62c2be4b695dbe25
     );
   }
 }

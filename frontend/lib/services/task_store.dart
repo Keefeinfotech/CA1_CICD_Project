@@ -5,7 +5,7 @@ import 'gamification.dart';
 import 'task_repository.dart';
 import 'task_validation.dart';
 
-enum TaskFilter { all, pending, completed }
+enum TaskFilter { all, pending, overdue, completed }
 
 class TaskStore extends ChangeNotifier {
   TaskStore({
@@ -45,6 +45,22 @@ class TaskStore extends ChangeNotifier {
 
   int get completedCount => _tasks.length - pendingCount;
 
+  int get overdueCount => _tasks.where((task) => task.isOverdue).length;
+
+  int get dueTodayCount => _tasks.where(_isDueToday).length;
+
+  int get completedThisWeek => _tasks.where((task) {
+    final completedAt = task.completedAt;
+    if (!task.isCompleted || completedAt == null) return false;
+    final now = DateTime.now();
+    final startOfWeek = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - 1));
+    return !completedAt.isBefore(startOfWeek);
+  }).length;
+
   int get totalXp => Gamification.totalXp(_tasks);
 
   LevelProgress get levelProgress => Gamification.progressFor(_tasks);
@@ -58,6 +74,8 @@ class TaskStore extends ChangeNotifier {
           switch (_filter) {
             case TaskFilter.pending:
               if (task.isCompleted) return false;
+            case TaskFilter.overdue:
+              if (task.isCompleted || !task.isOverdue) return false;
             case TaskFilter.completed:
               if (!task.isCompleted) return false;
             case TaskFilter.all:
@@ -65,7 +83,8 @@ class TaskStore extends ChangeNotifier {
           }
           if (normalizedQuery.isEmpty) return true;
           return task.title.toLowerCase().contains(normalizedQuery) ||
-              task.notes.toLowerCase().contains(normalizedQuery);
+              task.notes.toLowerCase().contains(normalizedQuery) ||
+              task.course.toLowerCase().contains(normalizedQuery);
         })
         .toList(growable: false);
 
@@ -120,6 +139,7 @@ class TaskStore extends ChangeNotifier {
     final task = Task.create(
       title: draft.title,
       notes: draft.notes,
+      course: draft.course,
       priority: draft.priority,
       dueDate: draft.dueDate,
       reminderAt: draft.reminderAt,
@@ -139,6 +159,7 @@ class TaskStore extends ChangeNotifier {
     final updated = _tasks[index].copyWith(
       title: draft.title.trim(),
       notes: draft.notes.trim(),
+      course: draft.course.trim(),
       priority: draft.priority,
       dueDate: draft.dueDate,
       reminderAt: draft.reminderAt,
@@ -178,6 +199,13 @@ class TaskStore extends ChangeNotifier {
     final next = _tasks.where((task) => task.id != id).toList(growable: false);
     if (next.length == _tasks.length) return false;
     return _commit(next);
+  }
+
+  /// Restores a previously deleted task, keeping its original identifier,
+  /// timestamps and earned XP so undo is lossless.
+  Future<bool> restoreTask(Task task) async {
+    if (_tasks.any((existing) => existing.id == task.id)) return false;
+    return _commit(<Task>[..._tasks, task]);
   }
 
   Future<bool> clearAll() async {
@@ -249,6 +277,15 @@ class TaskStore extends ChangeNotifier {
   void _clampPage() {
     final maxPage = pageCount - 1;
     if (_page > maxPage) _page = maxPage < 0 ? 0 : maxPage;
+  }
+
+  bool _isDueToday(Task task) {
+    final dueDate = task.dueDate;
+    if (task.isCompleted || dueDate == null) return false;
+    final now = DateTime.now();
+    return dueDate.year == now.year &&
+        dueDate.month == now.month &&
+        dueDate.day == now.day;
   }
 
   int _compare(Task a, Task b) {

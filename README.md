@@ -14,10 +14,14 @@ Built with Flutter, Express.js, TypeScript, MongoDB, and GitHub Actions.
 
 ## Features
 
-- Create, edit, complete, and delete tasks with priority, notes, and due dates.
-- Search, filter by status, and page through tasks (20 per page).
+- Create, edit, complete, and delete tasks with priority, course/subject, notes,
+  and due dates; undo deletion and completion from the snackbar.
+- Search titles, notes, and courses; filter status and overdue work; page through
+  tasks (20 per page).
+- Deadline awareness: due-today and overdue counts on the dashboard.
 - XP and levels based on completed priority; achievements for milestones.
 - Guest mode with local tasks; optional sign-up and sign-in for the assistant.
+- Session restore plus an explicit splash gate at launch and named routes.
 - AI assistant screen backed by the API (mock provider by default).
 - Responsive layout, semantic labels, and support for 200% text scaling.
 
@@ -32,6 +36,8 @@ Flutter app ── local storage (shared_preferences)  -> tasks, offline-first
 
 - Tasks are stored on the device and are never uploaded. Guest data uses the
   owner key `local`; signed-in data uses the account email.
+- Local task storage uses a versioned envelope (`auxilia.tasks.v2.*`) and
+  migrates legacy v1 data on first load.
 - The backend owns accounts only: signup, login, and the protected AI route.
 - Sign-in tokens live in platform secure storage, not in preferences.
 
@@ -119,19 +125,21 @@ inventory, deletion paths, and the AI data flow.
 ```bash
 cd backend
 npm run typecheck
-npm run test:coverage     # 31 tests, coverage thresholds enforced
+npm run test:coverage     # 49 tests, coverage thresholds enforced
 npm run build
 
 cd ../frontend
-dart format --output=none --set-exit-if-changed lib test
+dart format --output=none --set-exit-if-changed lib test tool
 flutter analyze
-flutter test --coverage  # 58 tests, including accessibility checks
+flutter test --coverage  # 78 tests, including accessibility checks
+dart run tool/check_coverage.dart 60
 flutter build web --release
 ```
 
-Frontend tests cover the model, validation, XP/levels, repository, store, task
-card, dashboard flows, and a 200% text-scale layout. Platform storage is faked
-in tests, so no emulator is required.
+Frontend tests cover the model, validation, XP/levels, repository schema
+migration, store, task card, dashboard flows, session restore, undo, and a 200%
+text-scale layout. Platform storage is faked in tests, so no emulator is
+required.
 
 ## CI/CD
 
@@ -143,9 +151,10 @@ in tests, so no emulator is required.
 |-----|--------|
 | `security-scan` | Trivy filesystem scan (CRITICAL/HIGH), SARIF uploaded to code scanning (report-only) |
 | `backend` | `npm ci`, typecheck, tests with coverage, build; coverage artifact |
-| `frontend` | Flutter 3.47.8, `pub get`, format check, `flutter analyze`, tests with coverage, web release build; coverage artifact |
+| `frontend` | Flutter 3.47.8, `pub get`, format check, `flutter analyze`, tests with coverage, 60% line-coverage gate, web release build; coverage artifact |
 
-Backend coverage gates: 80% statements/lines/functions, 60% branches. Full gate
+Backend coverage gates: 80% statements/lines/functions, 60% branches. Frontend
+coverage is gated at 60% lines by `frontend/tool/check_coverage.dart`. Full gate
 definitions are in [docs/NFR_RELEASE_GATES.md](docs/NFR_RELEASE_GATES.md); use
 [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) before tagging a release.
 
@@ -160,12 +169,16 @@ definitions are in [docs/NFR_RELEASE_GATES.md](docs/NFR_RELEASE_GATES.md); use
 
 - No account deletion in the app yet; contact the maintainer.
 - No server-side task sync; tasks are per-device and per-owner.
+- Reminders are stored and validated but are not scheduled as notifications.
+- Group workspaces and the AI rubric-to-roadmap workflow are planned, not
+  implemented. See [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md).
 - The AI provider is a mock; a real provider must be implemented behind the
   existing endpoint.
 - Swagger UI is intentionally unavailable when `NODE_ENV=production`.
 
 ## Documentation
 
+- [Project plan](docs/PROJECT_PLAN.md)
 - [Release gates](docs/NFR_RELEASE_GATES.md)
 - [Release checklist](docs/RELEASE_CHECKLIST.md)
 - [Privacy notice](docs/PRIVACY.md)

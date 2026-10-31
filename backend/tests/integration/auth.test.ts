@@ -9,8 +9,12 @@ import bcrypt from "bcryptjs";
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+<<<<<<< HEAD
 // Mock the User model to prevent tests from accessing the actual database.
 vi.mock("../../src/models/User.js", () => ({
+=======
+vi.mock("../../src/modules/auth/auth.model.js", () => ({
+>>>>>>> da0726bcb826a09906dd470d62c2be4b695dbe25
   User: {
     findOne: vi.fn(),
     create: vi.fn(),
@@ -19,15 +23,21 @@ vi.mock("../../src/models/User.js", () => ({
 }));
 
 import app from "../../src/app";
-import { User } from "../../src/models/User.js";
+import { User } from "../../src/modules/auth/auth.model.js";
 import { verifyAccessToken } from "../../src/utils/tokens";
 
 // Access mocked User model methods.
 const userModel = User as any;
 
+<<<<<<< HEAD
 // Simulate a Mongoose query supporting .select().
 const selectResult = (value: unknown) => ({
   select: vi.fn().mockResolvedValue(value),
+=======
+const queryResult = (value: unknown) => ({
+  select: vi.fn().mockReturnThis(),
+  exec: vi.fn().mockResolvedValue(value),
+>>>>>>> da0726bcb826a09906dd470d62c2be4b695dbe25
 });
 
 // Shared test password and its hash.
@@ -45,14 +55,22 @@ beforeEach(() => {
 
 describe("POST /api/auth/signup", () => {
   it("creates an account and returns a signed session token", async () => {
+<<<<<<< HEAD
     userModel.findOne.mockResolvedValue(null);
 
     // Mock the newly created user document.
+=======
+    userModel.findOne.mockReturnValue(queryResult(null));
+>>>>>>> da0726bcb826a09906dd470d62c2be4b695dbe25
     const created = {
       _id: "user-1",
       name: "Ada",
       email: "ada@example.com",
+<<<<<<< HEAD
       activeSessionId: null as string | null,
+=======
+      role: "user",
+>>>>>>> da0726bcb826a09906dd470d62c2be4b695dbe25
       save: vi.fn().mockResolvedValue(undefined),
     };
 
@@ -74,8 +92,12 @@ describe("POST /api/auth/signup", () => {
       name: "Ada",
       email: "ada@example.com",
     });
+<<<<<<< HEAD
 
     // Verify that the user data was normalised.
+=======
+    expect(res.body.user).not.toHaveProperty("role");
+>>>>>>> da0726bcb826a09906dd470d62c2be4b695dbe25
     expect(userModel.create).toHaveBeenCalledWith(
       expect.objectContaining({
         email: "ada@example.com",
@@ -87,15 +109,26 @@ describe("POST /api/auth/signup", () => {
     const payload = verifyAccessToken(res.body.token);
 
     expect(payload?.sub).toBe("user-1");
+<<<<<<< HEAD
 
     // Verify that the token becomes the user's active session.
+=======
+>>>>>>> da0726bcb826a09906dd470d62c2be4b695dbe25
     expect(created.activeSessionId).toBe(payload?.jti);
     expect(created.save).toHaveBeenCalledTimes(1);
   });
 
   it("rejects an email that is already registered", async () => {
+<<<<<<< HEAD
     userModel.findOne.mockResolvedValue({
       _id: "existing",
+=======
+    userModel.findOne.mockReturnValue(queryResult({ _id: "existing" }));
+
+    const res = await request(app).post("/api/auth/signup").send({
+      email: "ada@example.com",
+      password,
+>>>>>>> da0726bcb826a09906dd470d62c2be4b695dbe25
     });
 
     const res = await request(app)
@@ -109,6 +142,34 @@ describe("POST /api/auth/signup", () => {
     expect(res.body.code).toBe("CONFLICT");
 
     // Ensure that no new account was created.
+    expect(userModel.create).not.toHaveBeenCalled();
+  });
+
+  it("maps a duplicate-key race to a conflict", async () => {
+    userModel.findOne.mockReturnValue(queryResult(null));
+    userModel.create.mockRejectedValue({
+      name: "MongoServerError",
+      code: 11000,
+    });
+
+    const res = await request(app).post("/api/auth/signup").send({
+      email: "ada@example.com",
+      password,
+    });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe("CONFLICT");
+  });
+
+  it("rejects unknown fields", async () => {
+    const res = await request(app).post("/api/auth/signup").send({
+      email: "ada@example.com",
+      password,
+      role: "admin",
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.code).toBe("VALIDATION_ERROR");
     expect(userModel.create).not.toHaveBeenCalled();
   });
 
@@ -152,13 +213,18 @@ describe("POST /api/auth/login", () => {
       _id: "user-1",
       name: "Ada",
       email: "ada@example.com",
+      role: "user",
       passwordHash: await passwordHashPromise,
       lastLoginAt: null as Date | null,
       activeSessionId: null as string | null,
       save,
     };
+<<<<<<< HEAD
 
     userModel.findOne.mockReturnValue(selectResult(user));
+=======
+    userModel.findOne.mockReturnValue(queryResult(user));
+>>>>>>> da0726bcb826a09906dd470d62c2be4b695dbe25
 
     const res = await request(app)
       .post("/api/auth/login")
@@ -182,9 +248,10 @@ describe("POST /api/auth/login", () => {
 
   it("rejects a wrong password", async () => {
     userModel.findOne.mockReturnValue(
-      selectResult({
+      queryResult({
         _id: "user-1",
         email: "ada@example.com",
+        role: "user",
         passwordHash: await passwordHashPromise,
         save: vi.fn(),
       })
@@ -202,7 +269,7 @@ describe("POST /api/auth/login", () => {
   });
 
   it("rejects an unknown account with the same message", async () => {
-    userModel.findOne.mockReturnValue(selectResult(null));
+    userModel.findOne.mockReturnValue(queryResult(null));
 
     const res = await request(app)
       .post("/api/auth/login")

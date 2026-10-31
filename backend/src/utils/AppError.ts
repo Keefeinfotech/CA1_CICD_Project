@@ -28,33 +28,18 @@ export class AppError extends Error {
   }
 }
 
-// HTTP 400 - Bad Request.
-export const badRequest = (
-  message: string,
-  details?: unknown
-): AppError =>
-  new AppError(400, "BAD_REQUEST", message, details);
-
-// HTTP 401 - Unauthorized.
-export const unauthorized = (
-  message = "Authentication required"
-): AppError =>
+export const unauthorized = (message = "Authentication required"): AppError =>
   new AppError(401, "UNAUTHORIZED", message);
 
-// HTTP 403 - Forbidden.
-export const forbidden = (
-  message = "You do not have permission to perform this action."
-): AppError =>
+export const forbidden = (message = "Insufficient permissions"): AppError =>
   new AppError(403, "FORBIDDEN", message);
 
-// HTTP 404 - Not Found.
-export const notFound = (
-  message = "Resource not found"
-): AppError =>
-  new AppError(404, "NOT_FOUND", message);
-
-// HTTP 409 - Conflict.
-export const conflict = (
-  message: string
-): AppError =>
+export const conflict = (message: string): AppError =>
   new AppError(409, "CONFLICT", message);
+
+export const sessionReplaced = (): AppError =>
+  new AppError(
+    401,
+    "SESSION_REPLACED",
+    "Session ended. This account signed in on another device."
+  );

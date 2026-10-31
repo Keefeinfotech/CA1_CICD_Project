@@ -33,6 +33,21 @@ void main() {
     expect(find.textContaining('Due '), findsOneWidget);
   });
 
+  testWidgets('shows the course label when provided', (tester) async {
+    final task = makeTask(title: 'Lab report', course: 'COMP 2101');
+
+    await tester.pumpWidget(
+      wrapApp(
+        Scaffold(
+          body: TaskCard(task: task, onToggle: () {}),
+        ),
+      ),
+    );
+
+    expect(find.text('COMP 2101'), findsOneWidget);
+    expect(find.byIcon(Icons.school_outlined), findsOneWidget);
+  });
+
   testWidgets('marks overdue pending tasks without relying on colour', (
     tester,
   ) async {

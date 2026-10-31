@@ -10,7 +10,12 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "lcov"],
       include: ["src/**/*.ts"],
-      exclude: ["src/server.ts", "src/swagger.ts", "src/types/**"],
+      exclude: [
+        "src/server.ts",
+        "src/config/swagger.ts",
+        "src/config/database.ts",
+        "src/types/**",
+      ],
       thresholds: {
         statements: 80,
         branches: 60,

@@ -42,6 +42,7 @@ class Task {
     required this.status,
     required this.createdAt,
     required this.updatedAt,
+    this.course = '',
     this.dueDate,
     this.reminderAt,
     this.completedAt,
@@ -55,6 +56,7 @@ class Task {
   final String id;
   final String title;
   final String notes;
+  final String course;
   final TaskPriority priority;
   final TaskStatus status;
   final DateTime? dueDate;
@@ -75,6 +77,7 @@ class Task {
   factory Task.create({
     required String title,
     String notes = '',
+    String course = '',
     TaskPriority priority = TaskPriority.medium,
     DateTime? dueDate,
     DateTime? reminderAt,
@@ -85,6 +88,7 @@ class Task {
       id: _generateId(timestamp),
       title: title.trim(),
       notes: notes.trim(),
+      course: course.trim(),
       priority: priority,
       status: TaskStatus.pending,
       dueDate: dueDate,
@@ -97,6 +101,7 @@ class Task {
   Task copyWith({
     String? title,
     String? notes,
+    String? course,
     TaskPriority? priority,
     TaskStatus? status,
     DateTime? updatedAt,
@@ -109,6 +114,7 @@ class Task {
       id: id,
       title: title ?? this.title,
       notes: notes ?? this.notes,
+      course: course ?? this.course,
       priority: priority ?? this.priority,
       status: status ?? this.status,
       dueDate: identical(dueDate, _unset) ? this.dueDate : dueDate as DateTime?,
@@ -129,6 +135,7 @@ class Task {
       'id': id,
       'title': title,
       'notes': notes,
+      'course': course,
       'priority': priority.name,
       'status': status.name,
       'dueDate': dueDate?.toUtc().toIso8601String(),
@@ -163,6 +170,7 @@ class Task {
       id: id,
       title: title.trim(),
       notes: raw['notes'] is String ? raw['notes'] as String : '',
+      course: raw['course'] is String ? (raw['course'] as String).trim() : '',
       priority: TaskPriorityLabel.fromName(raw['priority'] as String?),
       status: TaskStatusLabel.fromName(raw['status'] as String?),
       dueDate: _parseDate(raw['dueDate']),
@@ -194,6 +202,7 @@ class TaskDraft {
   const TaskDraft({
     required this.title,
     this.notes = '',
+    this.course = '',
     this.priority = TaskPriority.medium,
     this.dueDate,
     this.reminderAt,
@@ -201,6 +210,7 @@ class TaskDraft {
 
   final String title;
   final String notes;
+  final String course;
   final TaskPriority priority;
   final DateTime? dueDate;
   final DateTime? reminderAt;
@@ -208,6 +218,7 @@ class TaskDraft {
   TaskDraft copyWith({
     String? title,
     String? notes,
+    String? course,
     TaskPriority? priority,
     Object? dueDate = Task._unset,
     Object? reminderAt = Task._unset,
@@ -215,6 +226,7 @@ class TaskDraft {
     return TaskDraft(
       title: title ?? this.title,
       notes: notes ?? this.notes,
+      course: course ?? this.course,
       priority: priority ?? this.priority,
       dueDate: identical(dueDate, Task._unset)
           ? this.dueDate

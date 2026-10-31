@@ -11,6 +11,7 @@ class TaskValidationException implements Exception {
 
 const int maxTitleLength = 120;
 const int maxNotesLength = 2000;
+const int maxCourseLength = 60;
 
 String? validateTitle(String? value) {
   final title = (value ?? '').trim();
@@ -25,6 +26,14 @@ String? validateNotes(String? value) {
   final notes = (value ?? '').trim();
   if (notes.length > maxNotesLength) {
     return 'Keep notes under $maxNotesLength characters';
+  }
+  return null;
+}
+
+String? validateCourse(String? value) {
+  final course = (value ?? '').trim();
+  if (course.length > maxCourseLength) {
+    return 'Keep the course under $maxCourseLength characters';
   }
   return null;
 }
@@ -45,6 +54,9 @@ void validateDraft(TaskDraft draft) {
 
   final notesError = validateNotes(draft.notes);
   if (notesError != null) throw TaskValidationException(notesError);
+
+  final courseError = validateCourse(draft.course);
+  if (courseError != null) throw TaskValidationException(courseError);
 
   final scheduleError = validateSchedule(
     dueDate: draft.dueDate,

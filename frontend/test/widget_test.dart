@@ -5,6 +5,7 @@ import 'package:frontend/main.dart';
 void main() {
   testWidgets('welcome screen exposes the main entry points', (tester) async {
     await tester.pumpWidget(const AuxiliaApp());
+    await tester.pumpAndSettle();
 
     expect(find.text('Auxilia'), findsOneWidget);
     expect(find.text('Open my tasks'), findsOneWidget);
@@ -15,6 +16,7 @@ void main() {
 
   testWidgets('welcome screen states that tasks work offline', (tester) async {
     await tester.pumpWidget(const AuxiliaApp());
+    await tester.pumpAndSettle();
 
     expect(
       find.textContaining('Tasks are stored on this device'),

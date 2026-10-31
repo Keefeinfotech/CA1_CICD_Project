@@ -21,6 +21,9 @@ class _TaskEditorState extends State<TaskEditor> {
   late final TextEditingController _notes = TextEditingController(
     text: widget.initial?.notes ?? '',
   );
+  late final TextEditingController _course = TextEditingController(
+    text: widget.initial?.course ?? '',
+  );
   late TaskPriority _priority = widget.initial?.priority ?? TaskPriority.medium;
   late DateTime? _dueDate = widget.initial?.dueDate;
   late DateTime? _reminderAt = widget.initial?.reminderAt;
@@ -32,6 +35,7 @@ class _TaskEditorState extends State<TaskEditor> {
   void dispose() {
     _title.dispose();
     _notes.dispose();
+    _course.dispose();
     super.dispose();
   }
 
@@ -91,6 +95,7 @@ class _TaskEditorState extends State<TaskEditor> {
       TaskDraft(
         title: _title.text.trim(),
         notes: _notes.text.trim(),
+        course: _course.text.trim(),
         priority: _priority,
         dueDate: _dueDate,
         reminderAt: _reminderAt,
@@ -138,6 +143,19 @@ class _TaskEditorState extends State<TaskEditor> {
                   hintText: 'What needs to be done?',
                 ),
                 validator: validateTitle,
+              ),
+              const SizedBox(height: 4),
+              TextFormField(
+                controller: _course,
+                maxLength: maxCourseLength,
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(
+                  labelText: 'Course or subject (optional)',
+                  hintText: 'e.g. COMP 2101',
+                  counterText: '',
+                  prefixIcon: Icon(Icons.school_outlined),
+                ),
+                validator: validateCourse,
               ),
               const SizedBox(height: 4),
               TextFormField(

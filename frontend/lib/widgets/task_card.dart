@@ -121,6 +121,20 @@ class TaskCard extends StatelessWidget {
                               ),
                             ),
                           ),
+                          if (task.course.isNotEmpty)
+                            _pill(
+                              context,
+                              color: theme.colorScheme.primary,
+                              icon: Icons.school_outlined,
+                              child: Text(
+                                task.course,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
                           _pill(
                             context,
                             color: task.isOverdue
