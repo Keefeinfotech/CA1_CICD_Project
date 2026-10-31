@@ -200,13 +200,13 @@ void main() {
       expect(store.filteredCount, 1);
     });
 
-    test('searches titles and notes', () async {
+    test('searches titles, notes and courses', () async {
       final repository = InMemoryTaskRepository(
         seed: <String, List<Task>>{
           'owner': <Task>[
             makeTask(id: '1', title: 'Buy milk'),
             makeTask(id: '2', title: 'Write report', notes: 'milk budget'),
-            makeTask(id: '3', title: 'Call mum'),
+            makeTask(id: '3', title: 'Call mum', course: 'COMP 2101'),
           ],
         },
       );
@@ -215,6 +215,87 @@ void main() {
 
       store.setQuery('MILK');
       expect(store.filteredCount, 2);
+
+      store.setQuery('comp 2101');
+      expect(store.filteredCount, 1);
+    });
+  });
+
+  group('deadline awareness', () {
+    test('counts due today and overdue tasks separately', () async {
+      final now = DateTime.now();
+      final repository = InMemoryTaskRepository(
+        seed: <String, List<Task>>{
+          'owner': <Task>[
+            makeTask(
+              id: 'today',
+              dueDate: DateTime(now.year, now.month, now.day, 23, 59),
+            ),
+            makeTask(
+              id: 'overdue',
+              dueDate: now.subtract(const Duration(days: 2)),
+            ),
+            makeTask(
+              id: 'done',
+              status: TaskStatus.completed,
+              dueDate: now.subtract(const Duration(days: 1)),
+            ),
+            makeTask(id: 'later', dueDate: now.add(const Duration(days: 2))),
+          ],
+        },
+      );
+      final store = buildStore(repository);
+      await store.load();
+
+      expect(store.dueTodayCount, 1);
+      expect(store.overdueCount, 1);
+    });
+
+    test('filters overdue tasks only', () async {
+      final now = DateTime.now();
+      final repository = InMemoryTaskRepository(
+        seed: <String, List<Task>>{
+          'owner': <Task>[
+            makeTask(
+              id: 'overdue',
+              dueDate: now.subtract(const Duration(days: 1)),
+            ),
+            makeTask(id: 'later', dueDate: now.add(const Duration(days: 3))),
+          ],
+        },
+      );
+      final store = buildStore(repository);
+      await store.load();
+
+      store.setFilter(TaskFilter.overdue);
+      expect(store.filteredCount, 1);
+      expect(store.visibleTasks.single.id, 'overdue');
+    });
+
+    test('counts tasks completed this calendar week', () async {
+      final now = DateTime.now();
+      final repository = InMemoryTaskRepository(
+        seed: <String, List<Task>>{
+          'owner': <Task>[
+            makeTask(
+              id: 'recent',
+              status: TaskStatus.completed,
+              completedAt: now,
+              xpAwarded: true,
+            ),
+            makeTask(
+              id: 'old',
+              status: TaskStatus.completed,
+              completedAt: now.subtract(const Duration(days: 14)),
+              xpAwarded: true,
+            ),
+          ],
+        },
+      );
+      final store = buildStore(repository);
+      await store.load();
+
+      expect(store.completedThisWeek, 1);
     });
   });
 
@@ -231,6 +312,47 @@ void main() {
       expect(await store.deleteTask('1'), isTrue);
       expect(store.tasks, isEmpty);
       expect(await repository.load('owner'), isEmpty);
+    });
+
+    test('restores a deleted task without losing XP', () async {
+      final repository = InMemoryTaskRepository(
+        seed: <String, List<Task>>{
+          'owner': <Task>[
+            makeTask(
+              id: '1',
+              status: TaskStatus.completed,
+              completedAt: DateTime(2026, 1, 2),
+              xpAwarded: true,
+            ),
+          ],
+        },
+      );
+      final store = buildStore(repository);
+      await store.load();
+      final task = store.tasks.single;
+      expect(store.totalXp, 20);
+
+      await store.deleteTask(task.id);
+      expect(store.tasks, isEmpty);
+      expect(store.totalXp, 0);
+
+      expect(await store.restoreTask(task), isTrue);
+      expect(store.tasks.single.id, task.id);
+      expect(store.tasks.single.isCompleted, isTrue);
+      expect(store.totalXp, 20);
+    });
+
+    test('does not duplicate a task on repeated restore', () async {
+      final repository = InMemoryTaskRepository(
+        seed: <String, List<Task>>{
+          'owner': <Task>[makeTask(id: '1')],
+        },
+      );
+      final store = buildStore(repository);
+      await store.load();
+
+      expect(await store.restoreTask(store.tasks.single), isFalse);
+      expect(store.tasks, hasLength(1));
     });
 
     test('clears all local data for the owner', () async {

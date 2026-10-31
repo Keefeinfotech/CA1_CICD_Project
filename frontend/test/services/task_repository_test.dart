@@ -80,6 +80,76 @@ void main() {
     expect(loaded.single.title, 'Valid');
   });
 
+  test('writes a versioned envelope', () async {
+    final repository = SharedPreferencesTaskRepository();
+    await repository.save('owner', <Task>[makeTask(title: 'Stored')]);
+
+    final prefs = await SharedPreferences.getInstance();
+    final decoded =
+        jsonDecode(prefs.getString('auxilia.tasks.v2.owner')!)
+            as Map<String, dynamic>;
+
+    expect(decoded['version'], SharedPreferencesTaskRepository.schemaVersion);
+    expect(decoded['tasks'], hasLength(1));
+  });
+
+  test('migrates legacy v1 data to the v2 schema once', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'auxilia.tasks.v1.owner': jsonEncode(<dynamic>[
+        makeTask(title: 'Legacy', course: 'COMP 2101').toJson(),
+      ]),
+    });
+    final repository = SharedPreferencesTaskRepository();
+
+    final loaded = await repository.load('owner');
+
+    expect(loaded.single.title, 'Legacy');
+    expect(loaded.single.course, 'COMP 2101');
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('auxilia.tasks.v2.owner'), isNotNull);
+    expect(prefs.getString('auxilia.tasks.v1.owner'), isNull);
+
+    final reloaded = await repository.load('owner');
+    expect(reloaded.single.title, 'Legacy');
+  });
+
+  test('rejects data written by a newer schema version', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      'auxilia.tasks.v2.owner': jsonEncode(<String, dynamic>{
+        'version': SharedPreferencesTaskRepository.schemaVersion + 1,
+        'tasks': <dynamic>[],
+      }),
+    });
+    final repository = SharedPreferencesTaskRepository();
+
+    await expectLater(
+      repository.load('owner'),
+      throwsA(
+        isA<TaskStorageException>().having(
+          (err) => err.message,
+          'message',
+          contains('newer version'),
+        ),
+      ),
+    );
+  });
+
+  test('clears both current and legacy keys', () async {
+    final repository = SharedPreferencesTaskRepository();
+    await repository.save('owner', <Task>[makeTask(title: 'Current')]);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      'auxilia.tasks.v1.owner',
+      jsonEncode(<dynamic>[makeTask(title: 'Legacy').toJson()]),
+    );
+
+    await repository.clear('owner');
+
+    expect(prefs.getString('auxilia.tasks.v2.owner'), isNull);
+    expect(prefs.getString('auxilia.tasks.v1.owner'), isNull);
+  });
+
   test('clears stored tasks', () async {
     final repository = SharedPreferencesTaskRepository();
     await repository.save('owner', <Task>[makeTask()]);

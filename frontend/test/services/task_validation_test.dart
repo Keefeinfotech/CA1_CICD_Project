@@ -30,6 +30,16 @@ void main() {
     });
   });
 
+  group('course validation', () {
+    test('rejects a course over the limit', () {
+      expect(validateCourse('COMP 2101'), isNull);
+      expect(
+        validateCourse('x' * (maxCourseLength + 1)),
+        contains('under $maxCourseLength'),
+      );
+    });
+  });
+
   group('schedule validation', () {
     test('requires a due date when a reminder is set', () {
       expect(

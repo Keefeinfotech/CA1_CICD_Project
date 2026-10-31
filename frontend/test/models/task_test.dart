@@ -19,15 +19,16 @@ void main() {
     test('serialises and restores every field', () {
       final due = DateTime(2026, 11, 2, 14, 30);
       final reminder = DateTime(2026, 11, 2, 10);
-      final task = Task.create(title: 'Submit assignment').copyWith(
-        notes: 'Check references',
-        priority: TaskPriority.high,
-        dueDate: due,
-        reminderAt: reminder,
-        status: TaskStatus.completed,
-        completedAt: DateTime(2026, 11, 1),
-        xpAwarded: true,
-      );
+      final task = Task.create(title: 'Submit assignment', course: 'COMP 2101')
+          .copyWith(
+            notes: 'Check references',
+            priority: TaskPriority.high,
+            dueDate: due,
+            reminderAt: reminder,
+            status: TaskStatus.completed,
+            completedAt: DateTime(2026, 11, 1),
+            xpAwarded: true,
+          );
 
       final restored = Task.tryFromJson(task.toJson());
 
@@ -35,6 +36,7 @@ void main() {
       expect(restored!.id, task.id);
       expect(restored.title, task.title);
       expect(restored.notes, task.notes);
+      expect(restored.course, 'COMP 2101');
       expect(restored.priority, TaskPriority.high);
       expect(restored.status, TaskStatus.completed);
       expect(restored.dueDate!.isAtSameMomentAs(due), isTrue);

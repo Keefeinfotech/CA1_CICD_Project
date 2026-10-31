@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../routing/app_router.dart';
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
 import '../services/session_store.dart';
-import 'home_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key, this.auth});
@@ -41,14 +41,13 @@ class _SignupScreenState extends State<SignupScreen> {
         password: _password.text,
       );
       if (!mounted) return;
-      Navigator.pushReplacement(
+      Navigator.pushReplacementNamed(
         context,
-        MaterialPageRoute<void>(
-          builder: (_) => HomeScreen(
-            ownerId: session.email,
-            displayName: session.displayName,
-            session: session,
-          ),
+        AppRoutes.home,
+        arguments: HomeArgs(
+          ownerId: session.email,
+          displayName: session.displayName,
+          session: session,
         ),
       );
     } on ApiException catch (err) {
