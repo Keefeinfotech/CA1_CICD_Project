@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../routing/app_router.dart';
 import '../services/auth_service.dart';
 import '../services/session_store.dart';
 import '../theme/app_theme.dart';
-import 'ai_chat_screen.dart';
-import 'home_screen.dart';
-import 'login_screen.dart';
-import 'signup_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key, this.auth});
@@ -45,32 +42,26 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       return;
     }
 
-    Navigator.push(
+    Navigator.pushNamed(
       context,
-      MaterialPageRoute<void>(builder: (_) => AiChatScreen(session: session)),
+      AppRoutes.assistant,
+      arguments: AssistantArgs(session: session),
     );
   }
 
   void _openLogin() {
-    Navigator.push(
-      context,
-      MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
-    );
+    Navigator.pushNamed(context, AppRoutes.login);
   }
 
   void _openSignup() {
-    Navigator.push(
-      context,
-      MaterialPageRoute<void>(builder: (_) => const SignupScreen()),
-    );
+    Navigator.pushNamed(context, AppRoutes.signup);
   }
 
   void _continueOffline() {
-    Navigator.push(
+    Navigator.pushNamed(
       context,
-      MaterialPageRoute<void>(
-        builder: (_) => const HomeScreen(ownerId: 'local'),
-      ),
+      AppRoutes.home,
+      arguments: const HomeArgs(ownerId: 'local'),
     );
   }
 

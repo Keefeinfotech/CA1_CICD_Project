@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/task.dart';
+import '../routing/app_router.dart';
 import '../services/auth_service.dart';
 import '../services/gamification.dart';
 import '../services/session_store.dart';
@@ -10,7 +11,6 @@ import '../services/task_validation.dart';
 import '../theme/app_theme.dart';
 import '../widgets/task_card.dart';
 import '../widgets/task_editor.dart';
-import 'ai_chat_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -61,10 +61,18 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mounted) setState(() {});
   }
 
-  void _showSnack(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+  void _showSnack(String message, {SnackBarAction? action}) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(message),
+        action: action,
+        duration: action == null
+            ? const Duration(seconds: 4)
+            : const Duration(seconds: 6),
+      ),
+    );
   }
 
   Future<void> _createTask() async {
@@ -126,6 +134,18 @@ class _HomeScreenState extends State<HomeScreen> {
     } else {
       _showSnack(
         xpGain > 0 ? 'Task completed · +$xpGain XP' : 'Task completed.',
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () async {
+            final restored = await _store.toggleCompletion(task.id);
+            if (!mounted) return;
+            _showSnack(
+              restored
+                  ? 'Completion undone. Earned XP is kept.'
+                  : _store.error ?? 'Could not undo the change.',
+            );
+          },
+        ),
       );
     }
   }
@@ -135,10 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Delete task?'),
-        content: Text(
-          '"${task.title}" will be removed from this device. '
-          'This cannot be undone.',
-        ),
+        content: Text('"${task.title}" will be removed from this device.'),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -156,8 +173,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final saved = await _store.deleteTask(task.id);
     if (!mounted) return;
+    if (!saved) {
+      _showSnack(_store.error ?? 'Could not delete the task.');
+      return;
+    }
     _showSnack(
-      saved ? 'Task deleted.' : _store.error ?? 'Could not delete the task.',
+      'Task deleted.',
+      action: SnackBarAction(
+        label: 'Undo',
+        onPressed: () async {
+          final restored = await _store.restoreTask(task);
+          if (!mounted) return;
+          _showSnack(
+            restored
+                ? 'Task restored.'
+                : _store.error ?? 'Could not restore the task.',
+          );
+        },
+      ),
     );
   }
 
@@ -202,7 +235,9 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
     if (!mounted) return;
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(AppRoutes.welcome, (route) => false);
   }
 
   void _openAssistant() {
@@ -211,9 +246,10 @@ class _HomeScreenState extends State<HomeScreen> {
       _showSnack('Sign in to use the AI assistant.');
       return;
     }
-    Navigator.push(
+    Navigator.pushNamed(
       context,
-      MaterialPageRoute<void>(builder: (_) => AiChatScreen(session: session)),
+      AppRoutes.assistant,
+      arguments: AssistantArgs(session: session),
     );
   }
 
@@ -442,7 +478,13 @@ class _HomeScreenState extends State<HomeScreen> {
               children: <Widget>[
                 _statTile('To do', '${_store.pendingCount}'),
                 const SizedBox(width: 8),
+                _statTile('Due today', '${_store.dueTodayCount}'),
+                const SizedBox(width: 8),
+                _statTile('Overdue', '${_store.overdueCount}'),
+                const SizedBox(width: 8),
                 _statTile('Done', '${_store.completedCount}'),
+                const SizedBox(width: 8),
+                _statTile('This week', '${_store.completedThisWeek}'),
                 const SizedBox(width: 8),
                 _statTile('Total XP', '${progress.totalXp}'),
               ],
@@ -608,6 +650,12 @@ class _HomeScreenState extends State<HomeScreen> {
           TaskFilter.pending,
           'To do (${_store.pendingCount})',
         ),
+        if (_store.overdueCount > 0)
+          _filterChip(
+            context,
+            TaskFilter.overdue,
+            'Overdue (${_store.overdueCount})',
+          ),
         _filterChip(
           context,
           TaskFilter.completed,

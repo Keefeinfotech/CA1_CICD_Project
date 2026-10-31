@@ -13,7 +13,7 @@ the completed checklist with the release notes.
 - [ ] Review merged pull requests for anything that changes data storage,
       authentication, or the public API.
 - [ ] Confirm documentation is current: `README.md`,
-      `docs/NFR_RELEASE_GATES.md`, `docs/PRIVACY.md`,
+      `docs/PROJECT_PLAN.md`, `docs/NFR_RELEASE_GATES.md`, `docs/PRIVACY.md`,
       `docs/DEPENDENCIES.md`.
 
 ## 2. Verify locally
@@ -27,14 +27,16 @@ npm run build
 
 cd ../frontend
 flutter pub get
-dart format --output=none --set-exit-if-changed lib test
+dart format --output=none --set-exit-if-changed lib test tool
 flutter analyze
 flutter test --coverage
+dart run tool/check_coverage.dart 60
 flutter build web --release
 ```
 
 - [ ] All commands above pass.
-- [ ] Backend coverage meets the thresholds in `backend/vitest.config.ts`.
+- [ ] Backend coverage meets the thresholds in `backend/vitest.config.mts`.
+- [ ] Frontend line coverage meets the 60% gate.
 - [ ] No new `flutter analyze` warnings or infos.
 
 ## 3. Review security and privacy
